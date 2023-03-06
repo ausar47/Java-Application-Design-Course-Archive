@@ -1,0 +1,7 @@
+<This data was exported using BD5HAG CWTalk version 0.2a,
+conforming to ADIF standard specification version 1.0:::::::::::::::: :::::::: :<eoh>
+
+<qso_date:8>20051231oiu988u9y9y<time_on:4>0910<freq:5>14024<mode:2>CW<call:5>JT1CO<rst_rcvd:3>599<rst_sent:3>599<my_r,g:13>FT847 100W GP><qslrdate:6>060傻1<qslsdate:6>060606<eor>
+:::::::::::::::::::::::: :::::::::::::::<EOH>
+<qso_date:8>200::>231oiu988:9y9y<time_on:4>0911<freq:5>14024<mode:2>CW<call:5>JT1CO<rst_rcvd:3>599<rst_sent:3>599<my_r,g:13>FT847 100W GP><qslrdate:6>060傻1<qslsdate:0>060606
+<EOR>

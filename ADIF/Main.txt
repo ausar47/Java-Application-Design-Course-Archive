@@ -1,0 +1,313 @@
+import java.io.*;
+import java.lang.String;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.TreeSet;
+import java.util.Comparator;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        // String fileName = "./test6.txt";
+        // BufferedReader in = new BufferedReader(new FileReader(fileName));
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        ArrayList<Integer> head = new ArrayList<>();
+        ArrayList<ADIFRecord> records = new ArrayList<>();
+        TreeSet<String> recordNameSet = new TreeSet<>();
+
+        // ignore the header
+        while (true) {
+            int c = in.read();
+            if (c == -1)
+                return;
+            if (Character.isLowerCase((char) c)) {
+                c -= 32;
+            }
+            head.add(c);
+            if (head.size() >= 5) {
+                if (head.get(head.size() - 1) == '>' && head.get(head.size() - 2) == 'H'
+                        && head.get(head.size() - 3) == 'O'
+                        && head.get(head.size() - 4) == 'E' && head.get(head.size() - 5) == '<') {
+                    break;
+                }
+            }
+        }
+
+        while (true) {
+            ADIFRecord record = new ADIFRecord();
+            record.read(in);
+            if (record.getFieldCount() == 0)
+                break; // eof
+            if (record.getMap().get("QSO_DATE") == null || record.getMap().get("TIME_ON") == null) {
+                continue;
+            } else {
+                records.add(record);
+            }
+        }
+        in.close();
+
+        Comparator recordComparator = new Comparator() {
+            @Override
+            public int compare(Object object1, Object object2) {
+                if (object1 instanceof ADIFRecord && object2 instanceof ADIFRecord) {
+                    ADIFRecord r1 = (ADIFRecord) object1;
+                    ADIFRecord r2 = (ADIFRecord) object2;
+                    if (r1.getMap().get("QSO_DATE").compareTo(r2.getMap().get("QSO_DATE")) == 0) {
+                        return r1.getMap().get("TIME_ON").compareTo(r2.getMap().get("TIME_ON"));
+                    }
+                    return r1.getMap().get("QSO_DATE").compareTo(r2.getMap().get("QSO_DATE"));
+                }
+                return 0;
+            }
+        };
+        records.sort(recordComparator);
+
+        for (int i = 0; i < records.size(); i++) {
+            ADIFRecord record = records.get(i);
+            for (int j = 0; j < record.size(); j++) {
+                String name = record.getField(j).getRecordName();
+                if (!recordNameSet.contains(name)) {
+                    recordNameSet.add(name);
+                }
+            }
+        }
+
+        for (Iterator<String> iter = recordNameSet.iterator(); iter.hasNext();) {
+            String temp = iter.next();
+            if (iter.hasNext()) {
+                if (temp.contains(",")) {
+                    System.out.printf("\"%s\",", temp);
+                    continue;
+                }
+                System.out.printf("%s,", temp);
+            }
+
+            else {
+                if (temp.contains(",")) {
+                    System.out.printf("\"%s\"\n", temp);
+                    continue;
+                }
+                System.out.println(temp);
+            }
+        }
+
+        for (int i = 0; i < records.size(); i++) {
+            ADIFRecord record = records.get(i);
+            HashMap<String, String> map = record.getMap();
+            for (Iterator<String> iter = recordNameSet.iterator(); iter.hasNext();) {
+                String name = iter.next();
+                if (map.containsKey(name) && iter.hasNext()) {
+                    String temp = map.get(name);
+                    if (temp.contains(",")) {
+                        System.out.printf("\"%s\",", temp);
+                        continue;
+                    }
+                    System.out.printf("%s,", temp);
+                } else if (map.containsKey(name) && !iter.hasNext()) {
+                    String temp = map.get(name);
+                    if (temp.contains(",")) {
+                        System.out.printf("\"%s\"\n", temp);
+                        continue;
+                    }
+                    System.out.println(temp);
+                } else {
+                    if (iter.hasNext()) {
+                        System.out.print(",");
+                    } else {
+                        System.out.println();
+                    }
+                }
+            }
+        }
+    }
+}
+
+class ADIFField {
+    private String recordName;
+    private String value;
+
+    private static boolean isChinesePunctuation(char c) {
+        Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
+        if (ub == Character.UnicodeBlock.GENERAL_PUNCTUATION
+                || ub == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
+                || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS
+                || ub == Character.UnicodeBlock.CJK_COMPATIBILITY_FORMS
+                || ub == Character.UnicodeBlock.VERTICAL_FORMS) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public ADIFField() {
+    }
+
+    public ADIFField(String name, String value) {
+        this.recordName = name;
+        this.value = value;
+    }
+
+    public String getRecordName() {
+        return recordName;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void parse(Reader in) throws Exception {
+        StringBuilder name = new StringBuilder();
+        StringBuilder length = new StringBuilder();
+        StringBuilder value = new StringBuilder();
+
+        int state = 0;
+        int valueLength = 0;
+
+        /*
+         * FSM parser.
+         * state = 0 :
+         * look for start-of-record '<'. Only whitespace allowed
+         * goes to state = 1 when start-of-record found
+         * state = 1 :
+         * get the field name
+         * goes to state=2 when colon found
+         * an end-of-record ('>') returns the record
+         * state = 2 :
+         * get the field value length
+         * goes to state = 3 when end-of-record found
+         * state = 3 :
+         * get the field value
+         * state = 4 :
+         * build ADIFField
+         */
+        try {
+            while (true) {
+                int c;
+                switch (state) {
+                    case 0:
+                        c = in.read();
+                        if (c == -1) {
+                            return;
+                        } // empty field
+                        if (c == '<') {
+                            state++;
+                            break;
+                        } else {
+                            break;
+                        }
+                    case 1:
+                        c = in.read();
+                        if (c == '>') {
+                            state = 3;
+                            break;
+                        } else if (c == ':') {
+                            state = 2;
+                            break;
+                        } else if (c != ' ' && c != '\n' && c != -1) {
+                            if (Character.isLowerCase((char) c)) {
+                                c -= 32;
+                            }
+                            name.append((char) c);
+                            break;
+                        } else {
+                            return;
+                        }
+                    case 2:
+                        c = in.read();
+                        if (c == '>') {
+                            state = 3;
+                            break;
+                        } else if (Character.isDigit((char) c)) {
+                            length.append((char) c);
+                            break;
+                        } else {
+                            return;
+                        }
+                    case 3:
+                        if (length.length() > 0) {
+                            try {
+                                valueLength = Integer.parseInt(length.toString());
+                            } catch (NumberFormatException e) {
+                                throw new Exception("Can't parse field length '" + length + "'.", e);
+                            }
+                        } else if (name.toString().equals("EOR") || name.toString().equals("EOH")) {
+                            this.recordName = name.toString();
+                            return;
+                        } else {
+                            state = 0;
+                            name.delete(0, name.length());
+                            break;
+                        }
+                        while (valueLength > 0) {
+                            c = in.read();
+                            if (c == -1) {
+                                return;
+                            }
+                            if (String.valueOf((char) c).matches("[\u4e00-\u9fa5]")
+                                    || isChinesePunctuation((char) c)) {
+                                valueLength--;
+                            }
+                            value.append((char) c);
+                            valueLength--;
+                        }
+                        state++;
+                        break;
+                    case 4:
+                        this.recordName = name.toString();
+                        this.value = value.toString();
+                        return;
+                }
+            }
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+}
+
+class ADIFRecord {
+    private ArrayList<ADIFField> fields = new ArrayList<>();
+    private HashMap<String, String> map = new HashMap<>();
+
+    public void read(Reader in) throws Exception {
+        while (true) {
+            ADIFField field = new ADIFField();
+            field.parse(in);
+            if ("EOR".equalsIgnoreCase(field.getRecordName())) {
+                break;
+            }
+            if (field.getRecordName() == null) {
+                this.fields.clear();
+                this.map.clear();
+                break;
+            }
+            if ("EOH".equalsIgnoreCase(field.getRecordName())) {
+                this.fields.clear();
+                this.map.clear();
+                continue;
+            }
+            fields.add(field);
+            map.put(field.getRecordName(), field.getValue());
+        }
+    }
+
+    // number of fields of the record
+    public int size() {
+        return fields.size();
+    }
+
+    public HashMap<String, String> getMap() {
+        return map;
+    }
+
+    // get the field by index
+    public ADIFField getField(int index) {
+        if (index >= fields.size()) {
+            return null;
+        }
+        return fields.get(index);
+    }
+
+    public int getFieldCount() {
+        return fields.size();
+    }
+}

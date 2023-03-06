@@ -1,0 +1,19 @@
+This data was exported using BD5HAG CWTalk version 0.2a,
+conforming to ADIF standard specification version 1.0<eoh>
+
+<qso_date:8>20051231<time_on:4>0910<freq:5>14024<mode:2>CW<call:5>JT1CO<rst_rcvd:3>599<rst_sent:3>599<my_rig:13>FT847 100W GP<qslrdate:6>060606<eoh><qslsdate:6>060606<eor>
+<qso_date:8>20060101<time_on:4>0951<freq:4>7015<mode:2>CW<call:6>JA7MBT<rst_rcvd:3>599<rst_sent:3>599<qth:5>IWAKI<name:5>TELLY<my_rig:14>FT847 100W INV
+
+WriteLog
+<EOH>
+<qso_date:8>20051128<time_on:4>1,53<freq:5>21125<mode:2>CW<call:6>BG5HLY<rst_rcvd:3>599<rst_sent:3>599<my_rig:13>FT847,100W GP<eor>
+<QSO_DATE:8>20070526 <TIME_ON:6>010631 <FREQ:6>21.013 <BAND:3>15m <STX:1>1 <MODE:2>CW
+    <CALL:8>JH1GUO/4
+    <RST_SENT:3>599
+    <RST_RCVD:3>599
+    <SRX:3>024
+    <APP_WRITELOG_P:1>1
+    <APP_WRITELOG_MULS:5>    1
+    <PFX:3>JH4
+    <APP_WRITELOG_COUNTRY:5>Japan
+    <APP_WRITELOG_PREF:2>J
